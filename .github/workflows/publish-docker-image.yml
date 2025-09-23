@@ -63,7 +63,7 @@ jobs:
             org.opencontainers.image.title=Jenkins Agent with SSH Transfer Extensions
             org.opencontainers.image.description=Jenkins agent with runtime SSH keyscan capabilities
             org.opencontainers.image.vendor=3wr
-            org.opencontainers.image.source=https://github.com/{{ env.IMAGE_NAME }}
+            org.opencontainers.image.source=https://github.com/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
