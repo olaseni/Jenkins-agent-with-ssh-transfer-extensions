@@ -1,6 +1,6 @@
 FROM jenkins/agent:latest
 
-LABEL org.opencontainers.image.source https://github.com/tripodwire/Jenkins-agent-with-ssh-transfer-extensions
+LABEL org.opencontainers.image.source=https://github.com/tripodwire/Jenkins-agent-with-ssh-transfer-extensions
 
 USER root
         
