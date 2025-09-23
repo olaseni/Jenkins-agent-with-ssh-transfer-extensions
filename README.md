@@ -67,11 +67,43 @@ services:
       # Always scans: github.com, gitlab.com, bitbucket.org (in addition to the above)
 ```
 
+## Pre-built Image
+
+The image is automatically built and published to GitHub Container Registry on every release.
+
+### Quick Start with Pre-built Image
+```bash
+# Pull the latest image
+docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
+
+# Run with default configuration (scans github.com, gitlab.com, bitbucket.org)
+docker run ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
+
+# Run with additional hostnames
+docker run -e HOSTNAMES_TO_SCAN_1="git.company.com" \
+  ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
+```
+
 ## Building and Testing
 
-### Build the Image
+### Build the Image Locally
 ```bash
 docker build -t jenkins-agent-ssh .
+```
+
+### Using the Publish Script
+```bash
+# Build only
+./publish.sh -r your-username/jenkins-agent-ssh -b
+
+# Build and test
+./publish.sh -r your-username/jenkins-agent-ssh
+
+# Build, test, and push to registry
+./publish.sh -r your-username/jenkins-agent-ssh -p
+
+# See all options
+./publish.sh --help
 ```
 
 ### Run Tests
@@ -84,6 +116,16 @@ docker build -t jenkins-agent-ssh .
 docker-compose -f docker-compose.example.yml up jenkins-agent-custom
 ```
 
+## Automated Publishing
+
+The image is automatically built and published via GitHub Actions:
+
+- **On push to main/master**: Builds and publishes with `latest` tag
+- **On tag push (v*)**: Builds and publishes with version tags
+- **On pull request**: Builds but doesn't publish (for testing)
+
+The workflow supports multi-platform builds (linux/amd64, linux/arm64) and includes automated testing.
+
 ## Files
 
 - `Dockerfile` - Main Docker image definition
@@ -91,6 +133,8 @@ docker-compose -f docker-compose.example.yml up jenkins-agent-custom
 - `docker-entrypoint.sh` - Container entrypoint that runs keyscan setup
 - `test-ssh-keyscan.sh` - Test script to validate functionality
 - `docker-compose.example.yml` - Example configurations
+- `publish.sh` - Helper script for building and publishing images
+- `.github/workflows/publish-docker-image.yml` - GitHub Actions workflow for automated publishing
 
 ## Benefits of Runtime Keyscan
 

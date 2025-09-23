@@ -18,8 +18,8 @@ docker run --rm "$IMAGE_NAME" bash -c "
     echo ''
     echo 'Checking for github.com entry:'
     ssh-keygen -F github.com -f /home/jenkins/.ssh/known_hosts && echo 'FOUND' || echo 'NOT FOUND'
-    echo 'Checking for projects.onproxmox.sh entry:'
-    ssh-keygen -F projects.onproxmox.sh -f /home/jenkins/.ssh/known_hosts && echo 'FOUND' || echo 'NOT FOUND'
+    echo 'Checking for gitlab.com entry:'
+    ssh-keygen -F gitlab.com -f /home/jenkins/.ssh/known_hosts && echo 'FOUND' || echo 'NOT FOUND'
 "
 
 echo ""

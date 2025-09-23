@@ -1,0 +1,127 @@
+name: Build and Publish Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: 'Force publish even from non-main branch'
+        required: false
+        default: 'false'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # set latest tag for default branch
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Jenkins Agent with SSH Transfer Extensions
+            org.opencontainers.image.description=Jenkins agent with runtime SSH keyscan capabilities
+            org.opencontainers.image.vendor=3wr
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' || github.event.inputs.force_publish == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker image
+        run: |
+          # Pull the image we just built
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+
+          # Run basic functionality test
+          echo "Testing default configuration..."
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} bash -c "
+            # Check if SSH keyscan setup ran
+            test -f /home/jenkins/.ssh/known_hosts || exit 1
+
+            # Check for always-scanned hostnames
+            ssh-keygen -F github.com -f /home/jenkins/.ssh/known_hosts > /dev/null || exit 1
+            ssh-keygen -F gitlab.com -f /home/jenkins/.ssh/known_hosts > /dev/null || exit 1
+            ssh-keygen -F bitbucket.org -f /home/jenkins/.ssh/known_hosts > /dev/null || exit 1
+
+            echo 'Basic functionality test passed!'
+          "
+
+          echo "Testing custom hostnames..."
+          docker run --rm -e HOSTNAMES_TO_SCAN_1="git.example.com" ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} bash -c "
+            # Always-scanned hosts should still be present
+            ssh-keygen -F github.com -f /home/jenkins/.ssh/known_hosts > /dev/null || exit 1
+            echo 'Custom hostname test passed!'
+          "
+
+      - name: Update package visibility
+        if: github.event_name != 'pull_request'
+        run: |
+          # Make the package public (this requires the package to exist first)
+          curl -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/packages/container/${{ github.repository }}/versions \
+            -d '{"visibility":"public"}' || true
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Docker Image Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Registry | \`${{ env.REGISTRY }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tags | \`${{ steps.meta.outputs.tags }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pushed | ${{ github.event_name != 'pull_request' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Usage" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker run ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
