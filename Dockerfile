@@ -1,5 +1,7 @@
 FROM jenkins/agent:latest
 
+LABEL org.opencontainers.image.source https://github.com/tripodwire/Jenkins-agent-with-ssh-transfer-extensions
+
 USER root
         
 # Install rsync for file transfers. ssh is already included in the base image. Clean up apt cache to reduce image size.
