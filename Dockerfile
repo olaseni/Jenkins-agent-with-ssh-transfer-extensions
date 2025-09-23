@@ -1,10 +1,6 @@
 FROM jenkins/agent:latest
 
 USER root
-
-# Set up the SSH directory
-RUN mkdir -p ~/.ssh \
-        && chmod 700 ~/.ssh
         
 # Install rsync for file transfers. ssh is already included in the base image. Clean up apt cache to reduce image size.
 RUN apt-get update && apt-get install -y rsync && rm -rf /var/lib/apt/lists/*
@@ -21,3 +17,7 @@ RUN chmod +x /usr/local/bin/ssh-keyscan-setup.sh \
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 USER jenkins
+
+# Set up the SSH directory
+RUN mkdir -p ~/.ssh \
+        && chmod 700 ~/.ssh

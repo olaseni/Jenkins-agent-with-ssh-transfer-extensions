@@ -1,25 +1,37 @@
 version: '3.8'
 
 services:
-  # Default configuration (uses github.com and projects.onproxmox.sh)
+  # Default configuration (always scans github.com, gitlab.com, bitbucket.org)
   jenkins-agent-default:
     build: .
     image: jenkins-agent-ssh:latest
     container_name: jenkins-agent-default
     environment:
-      # Uses default hostnames: github.com,projects.onproxmox.sh
+      # Only always-scanned hostnames will be included
       - SSH_KEYSCAN_ENABLED=true
 
-  # Custom hostnames configuration
-  jenkins-agent-custom:
+  # Additional hostnames using new format
+  jenkins-agent-with-additional:
     build: .
     image: jenkins-agent-ssh:latest
-    container_name: jenkins-agent-custom
+    container_name: jenkins-agent-with-additional
     environment:
-      - SSH_HOSTNAMES=gitlab.com,bitbucket.org,git.example.com
+      - HOSTNAMES_TO_SCAN_1=git.company.com,svn.legacy.com
+      - HOSTNAMES_TO_SCAN_DEV=dev.gitlab.com
       - SSH_KEYSCAN_ENABLED=true
 
-  # Disabled keyscan
+  # Multiple groups of hostnames
+  jenkins-agent-multi-env:
+    build: .
+    image: jenkins-agent-ssh:latest
+    container_name: jenkins-agent-multi-env
+    environment:
+      - HOSTNAMES_TO_SCAN_PROD=prod.git.company.com,secure.bitbucket.com
+      - HOSTNAMES_TO_SCAN_STAGING=staging.gitlab.com
+      - HOSTNAMES_TO_SCAN_LEGACY=old.svn.server.com
+      - SSH_KEYSCAN_ENABLED=true
+
+  # Disabled keyscan (no hostnames will be scanned, including always-scanned)
   jenkins-agent-disabled:
     build: .
     image: jenkins-agent-ssh:latest
@@ -27,11 +39,11 @@ services:
     environment:
       - SSH_KEYSCAN_ENABLED=false
 
-  # Mixed configuration (original + additional hosts)
-  jenkins-agent-mixed:
+  # Legacy SSH_HOSTNAMES still supported (always-scanned hosts are still included)
+  jenkins-agent-legacy:
     build: .
     image: jenkins-agent-ssh:latest
-    container_name: jenkins-agent-mixed
+    container_name: jenkins-agent-legacy
     environment:
-      - SSH_HOSTNAMES=github.com,projects.onproxmox.sh,gitlab.com,git.company.com
+      - SSH_HOSTNAMES=git.example.com,custom.host.com
       - SSH_KEYSCAN_ENABLED=true

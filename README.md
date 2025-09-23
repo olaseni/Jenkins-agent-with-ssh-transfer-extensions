@@ -5,8 +5,9 @@ A Jenkins agent Docker image with enhanced SSH keyscanning capabilities that run
 ## Features
 
 - **Runtime SSH Keyscan**: SSH host keys are scanned and added to `known_hosts` when the container starts, not during build
-- **Configurable Hostnames**: Specify which hosts to scan via environment variables
-- **Backward Compatibility**: Defaults to scanning `github.com` and `projects.onproxmox.sh` if no configuration provided
+- **Always-Scanned Hostnames**: `github.com`, `gitlab.com`, and `bitbucket.org` are always included for maximum compatibility
+- **Flexible Hostname Configuration**: Add additional hosts via multiple `HOSTNAMES_TO_SCAN_*` environment variables
+- **Backward Compatibility**: Legacy `SSH_HOSTNAMES` format still supported
 - **Idempotent Operation**: Safe to restart containers - existing entries won't be duplicated
 - **Flexible Configuration**: Enable/disable keyscan functionality per container
 
@@ -14,25 +15,43 @@ A Jenkins agent Docker image with enhanced SSH keyscanning capabilities that run
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SSH_HOSTNAMES` | Comma-separated list of hostnames to scan | `github.com,projects.onproxmox.sh` |
+| `HOSTNAMES_TO_SCAN_*` | Comma-separated list of additional hostnames to scan (supports multiple variables with any suffix) | None |
+| `SSH_HOSTNAMES` | Legacy: Comma-separated list of hostnames to scan (still supported for backward compatibility) | None |
 | `SSH_KEYSCAN_ENABLED` | Enable/disable SSH keyscanning | `true` |
+
+**Always-Scanned Hostnames**: `github.com`, `gitlab.com`, `bitbucket.org` are ALWAYS scanned regardless of configuration (unless `SSH_KEYSCAN_ENABLED=false`).
 
 ## Usage Examples
 
-### Default Configuration
+### Default Configuration (Always-Scanned Only)
 ```bash
 docker run jenkins-agent-ssh:latest
-# Scans: github.com, projects.onproxmox.sh
+# Scans: github.com, gitlab.com, bitbucket.org
 ```
 
-### Custom Hostnames
+### Additional Hostnames (New Format)
 ```bash
-docker run -e SSH_HOSTNAMES="gitlab.com,bitbucket.org,git.company.com" jenkins-agent-ssh:latest
+# Single group of additional hostnames
+docker run -e HOSTNAMES_TO_SCAN_1="git.company.com,svn.legacy.com" jenkins-agent-ssh:latest
+
+# Multiple groups with descriptive names
+docker run \
+  -e HOSTNAMES_TO_SCAN_PROD="prod.git.company.com,secure.bitbucket.com" \
+  -e HOSTNAMES_TO_SCAN_DEV="dev.gitlab.com" \
+  -e HOSTNAMES_TO_SCAN_LEGACY="old.svn.server.com" \
+  jenkins-agent-ssh:latest
+```
+
+### Legacy Format (Still Supported)
+```bash
+docker run -e SSH_HOSTNAMES="git.example.com,custom.host.com" jenkins-agent-ssh:latest
+# Scans: github.com, gitlab.com, bitbucket.org + git.example.com, custom.host.com
 ```
 
 ### Disable SSH Keyscan
 ```bash
 docker run -e SSH_KEYSCAN_ENABLED=false jenkins-agent-ssh:latest
+# No hostnames will be scanned (including always-scanned ones)
 ```
 
 ### Docker Compose
@@ -42,8 +61,10 @@ services:
   jenkins-agent:
     image: jenkins-agent-ssh:latest
     environment:
-      - SSH_HOSTNAMES=github.com,gitlab.com,bitbucket.org
+      - HOSTNAMES_TO_SCAN_COMPANY=git.company.com,svn.company.com
+      - HOSTNAMES_TO_SCAN_EXTERNAL=partner.gitlab.com
       - SSH_KEYSCAN_ENABLED=true
+      # Always scans: github.com, gitlab.com, bitbucket.org (in addition to the above)
 ```
 
 ## Building and Testing

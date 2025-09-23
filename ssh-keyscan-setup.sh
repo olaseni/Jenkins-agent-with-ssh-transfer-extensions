@@ -5,11 +5,8 @@
 
 set -euo pipefail
 
-# Default hostnames (backward compatibility)
-DEFAULT_HOSTNAMES="github.com,projects.onproxmox.sh"
-
-# Get hostnames from environment variable or use defaults
-SSH_HOSTNAMES=${SSH_HOSTNAMES:-$DEFAULT_HOSTNAMES}
+# Always scanned hostnames - these are ALWAYS included regardless of other configuration
+ALWAYS_SCANNED_HOSTNAMES="github.com,gitlab.com,bitbucket.org"
 
 # Check if SSH keyscanning is enabled (default: true)
 SSH_KEYSCAN_ENABLED=${SSH_KEYSCAN_ENABLED:-true}
@@ -73,23 +70,56 @@ main() {
         chown jenkins:jenkins "$KNOWN_HOSTS_FILE"
     fi
 
-    # Process hostnames (comma-separated)
-    if [[ -n "$SSH_HOSTNAMES" ]]; then
-        IFS=',' read -ra HOSTNAMES <<< "$SSH_HOSTNAMES"
-        for hostname in "${HOSTNAMES[@]}"; do
-            # Trim whitespace
-            hostname=$(echo "$hostname" | xargs)
+    # Collect all hostnames to scan
+    declare -A unique_hostnames
 
+    # Always include the always-scanned hostnames
+    log "Adding always-scanned hostnames: $ALWAYS_SCANNED_HOSTNAMES"
+    IFS=',' read -ra ALWAYS_HOSTS <<< "$ALWAYS_SCANNED_HOSTNAMES"
+    for hostname in "${ALWAYS_HOSTS[@]}"; do
+        hostname=$(echo "$hostname" | xargs)
+        if [[ -n "$hostname" ]]; then
+            unique_hostnames["$hostname"]=1
+        fi
+    done
+
+    # Collect hostnames from HOSTNAMES_TO_SCAN_* environment variables
+    for var in $(env | grep '^HOSTNAMES_TO_SCAN_' | cut -d= -f1); do
+        hostnames_list="${!var}"
+        log "Processing $var: $hostnames_list"
+        IFS=',' read -ra HOST_LIST <<< "$hostnames_list"
+        for hostname in "${HOST_LIST[@]}"; do
+            hostname=$(echo "$hostname" | xargs)
             if [[ -n "$hostname" ]]; then
-                if hostname_exists "$hostname"; then
-                    log "SSH keys for $hostname already exist in known_hosts"
-                else
-                    scan_hostname "$hostname"
-                fi
+                unique_hostnames["$hostname"]=1
             fi
         done
+    done
+
+    # Also support legacy SSH_HOSTNAMES for backward compatibility (but always-scanned still apply)
+    if [[ -n "${SSH_HOSTNAMES:-}" ]]; then
+        log "Processing legacy SSH_HOSTNAMES: $SSH_HOSTNAMES"
+        IFS=',' read -ra LEGACY_HOSTS <<< "$SSH_HOSTNAMES"
+        for hostname in "${LEGACY_HOSTS[@]}"; do
+            hostname=$(echo "$hostname" | xargs)
+            if [[ -n "$hostname" ]]; then
+                unique_hostnames["$hostname"]=1
+            fi
+        done
+    fi
+
+    # Process all unique hostnames
+    if [[ ${#unique_hostnames[@]} -eq 0 ]]; then
+        log "No hostnames to scan (this should not happen as always-scanned hostnames should be present)"
     else
-        log "No hostnames specified in SSH_HOSTNAMES"
+        log "Total unique hostnames to scan: ${#unique_hostnames[@]}"
+        for hostname in "${!unique_hostnames[@]}"; do
+            if hostname_exists "$hostname"; then
+                log "SSH keys for $hostname already exist in known_hosts"
+            else
+                scan_hostname "$hostname"
+            fi
+        done
     fi
 
     log "SSH keyscan setup completed"
