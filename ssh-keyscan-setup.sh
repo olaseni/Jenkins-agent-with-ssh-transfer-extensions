@@ -59,7 +59,6 @@ main() {
         log "Creating SSH directory: $SSH_DIR"
         mkdir -p "$SSH_DIR"
         chmod 700 "$SSH_DIR"
-        chown jenkins:jenkins "$SSH_DIR"
     fi
 
     # Create known_hosts file if it doesn't exist
@@ -67,7 +66,6 @@ main() {
         log "Creating known_hosts file: $KNOWN_HOSTS_FILE"
         touch "$KNOWN_HOSTS_FILE"
         chmod 644 "$KNOWN_HOSTS_FILE"
-        chown jenkins:jenkins "$KNOWN_HOSTS_FILE"
     fi
 
     # Collect all hostnames to scan
