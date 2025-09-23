@@ -2,11 +2,21 @@ FROM jenkins/agent:latest
 
 USER root
 
-# Set up the SSH directory and known_hosts file
+# Set up the SSH directory
 RUN mkdir -p ~/.ssh \
-        && chmod 700 ~/.ssh \
-        && ssh-keyscan -t rsa,ecdsa,ed25519 -H github.com >> ~/.ssh/known_hosts \
-        && ssh-keyscan -H projects.onproxmox.sh >> ~/.ssh/known_hosts
+        && chmod 700 ~/.ssh
         
-RUN apt-get update && apt-get install -y rsync ssh && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y rsync ssh gosu && rm -rf /var/lib/apt/lists/*
+
+# Copy SSH keyscan setup script and entrypoint
+COPY ssh-keyscan-setup.sh /usr/local/bin/ssh-keyscan-setup.sh
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+# Make scripts executable
+RUN chmod +x /usr/local/bin/ssh-keyscan-setup.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
 USER jenkins

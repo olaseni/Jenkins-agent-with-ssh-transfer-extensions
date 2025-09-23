@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Default configuration (uses github.com and projects.onproxmox.sh)
+  jenkins-agent-default:
+    build: .
+    image: jenkins-agent-ssh:latest
+    container_name: jenkins-agent-default
+    environment:
+      # Uses default hostnames: github.com,projects.onproxmox.sh
+      - SSH_KEYSCAN_ENABLED=true
+
+  # Custom hostnames configuration
+  jenkins-agent-custom:
+    build: .
+    image: jenkins-agent-ssh:latest
+    container_name: jenkins-agent-custom
+    environment:
+      - SSH_HOSTNAMES=gitlab.com,bitbucket.org,git.example.com
+      - SSH_KEYSCAN_ENABLED=true
+
+  # Disabled keyscan
+  jenkins-agent-disabled:
+    build: .
+    image: jenkins-agent-ssh:latest
+    container_name: jenkins-agent-disabled
+    environment:
+      - SSH_KEYSCAN_ENABLED=false
+
+  # Mixed configuration (original + additional hosts)
+  jenkins-agent-mixed:
+    build: .
+    image: jenkins-agent-ssh:latest
+    container_name: jenkins-agent-mixed
+    environment:
+      - SSH_HOSTNAMES=github.com,projects.onproxmox.sh,gitlab.com,git.company.com
+      - SSH_KEYSCAN_ENABLED=true
