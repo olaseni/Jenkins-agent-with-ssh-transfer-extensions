@@ -6,7 +6,8 @@ USER root
 RUN mkdir -p ~/.ssh \
         && chmod 700 ~/.ssh
         
-RUN apt-get update && apt-get install -y rsync ssh gosu && rm -rf /var/lib/apt/lists/*
+# Install rsync for file transfers. ssh is already included in the base image. Clean up apt cache to reduce image size.
+RUN apt-get update && apt-get install -y rsync && rm -rf /var/lib/apt/lists/*
 
 # Copy SSH keyscan setup script and entrypoint
 COPY ssh-keyscan-setup.sh /usr/local/bin/ssh-keyscan-setup.sh
