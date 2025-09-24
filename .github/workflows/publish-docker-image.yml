@@ -107,48 +107,44 @@ jobs:
           PACKAGE_NAME=$(echo "${{ env.IMAGE_NAME }}" | cut -d'/' -f2)
           OWNER=$(echo "${{ env.IMAGE_NAME }}" | cut -d'/' -f1)
 
-          echo "Attempting to make package public:"
+          echo "Attempting to make personal repository package public:"
           echo "  Owner: $OWNER"
           echo "  Package: $PACKAGE_NAME"
           echo "  Full name: ${{ env.IMAGE_NAME }}"
 
-          # Try to get package info first to see if it exists
-          echo "Checking if package exists..."
-          PACKAGE_EXISTS=$(curl -s -H "Accept: application/vnd.github+json" \
+          # For personal repositories, use the user API endpoint
+          echo "Checking if package exists (personal repo)..."
+          PACKAGE_INFO=$(curl -s -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/orgs/$OWNER/packages/container/$PACKAGE_NAME" \
-            | jq -r '.name // empty' 2>/dev/null || echo "")
+            "https://api.github.com/users/$OWNER/packages/container/$PACKAGE_NAME" 2>/dev/null || echo "")
 
-          if [ -z "$PACKAGE_EXISTS" ]; then
-            echo "Package not found via org API, trying user API..."
-            PACKAGE_EXISTS=$(curl -s -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/users/$OWNER/packages/container/$PACKAGE_NAME" \
-              | jq -r '.name // empty' 2>/dev/null || echo "")
-          fi
+          if echo "$PACKAGE_INFO" | jq -e '.name' >/dev/null 2>&1; then
+            echo "Package found, checking current visibility..."
+            CURRENT_VISIBILITY=$(echo "$PACKAGE_INFO" | jq -r '.visibility // "unknown"')
+            echo "Current visibility: $CURRENT_VISIBILITY"
 
-          if [ -n "$PACKAGE_EXISTS" ]; then
-            echo "Package found, attempting to update visibility..."
-
-            # Try org endpoint first
-            if curl -s -X PATCH \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/orgs/$OWNER/packages/container/$PACKAGE_NAME" \
-              -d '{"visibility":"public"}' | grep -q "public"; then
-              echo "Successfully updated package visibility to public (org endpoint)"
-            elif curl -s -X PATCH \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/users/$OWNER/packages/container/$PACKAGE_NAME" \
-              -d '{"visibility":"public"}' | grep -q "public"; then
-              echo "Successfully updated package visibility to public (user endpoint)"
+            if [ "$CURRENT_VISIBILITY" = "public" ]; then
+              echo "Package is already public, no action needed"
             else
-              echo "Failed to update package visibility, but this may not be critical"
+              echo "Attempting to update visibility to public..."
+              UPDATE_RESULT=$(curl -s -X PATCH \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/users/$OWNER/packages/container/$PACKAGE_NAME" \
+                -d '{"visibility":"public"}' 2>/dev/null || echo "")
+
+              if echo "$UPDATE_RESULT" | jq -e '.visibility' >/dev/null 2>&1; then
+                NEW_VISIBILITY=$(echo "$UPDATE_RESULT" | jq -r '.visibility')
+                echo "Successfully updated package visibility to: $NEW_VISIBILITY"
+              else
+                echo "Update may have failed, but this is often not critical for personal repositories"
+                echo "Personal repository packages are typically accessible by default"
+              fi
             fi
           else
-            echo "Package not found yet, it may take some time to appear in the API"
-            echo "The package will be created as public by default when first accessed"
+            echo "Package not found yet in GitHub API"
+            echo "This is normal - packages may take time to appear in the API after first push"
+            echo "Personal repository packages are typically public by default once created"
           fi
 
       - name: Generate summary
