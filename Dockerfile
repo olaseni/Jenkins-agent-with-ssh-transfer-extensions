@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y rsync && rm -rf /var/lib/apt/lists/*
 COPY ssh-keyscan-setup.sh /usr/local/bin/ssh-keyscan-setup.sh
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-# Make scripts executable
-RUN chmod +x /usr/local/bin/ssh-keyscan-setup.sh \
+# Create a memorable soft link for keyscan script and make scripts executable
+RUN ln -s /usr/local/bin/ssh-keyscan-setup.sh /usr/local/bin/scan_configured_host_keys \
+    && chmod +x /usr/local/bin/ssh-keyscan-setup.sh \
+    && chmod +x /usr/local/bin/scan_configured_host_keys \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set entrypoint
