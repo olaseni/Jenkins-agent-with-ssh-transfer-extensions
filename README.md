@@ -76,6 +76,12 @@ The image is automatically built and published to GitHub Container Registry on e
 # Pull the latest image
 docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
 
+# Pull a specific version (recommended for production)
+docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24.1
+
+# Pull latest build for a specific date
+docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24
+
 # Run with default configuration (scans github.com, gitlab.com, bitbucket.org)
 docker run ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
 
@@ -116,12 +122,38 @@ docker build -t jenkins-agent-ssh .
 docker-compose -f docker-compose.example.yml up jenkins-agent-custom
 ```
 
+## Versioning System
+
+The image uses an automatic versioning system that creates multiple tags for each build:
+
+### Tag Format
+- **`latest`**: Always points to the most recent build from the main branch
+- **`YYYY.MM.DD.BUILD`**: Specific version (e.g., `2024.09.24.1`, `2024.09.24.2`)
+- **`YYYY.MM.DD`**: Latest build for a specific date (e.g., `2024.09.24`)
+
+### Version Generation
+- **Date**: Current date in YYYY.MM.DD format
+- **Build Number**: Number of commits made on the current day (starting from 1)
+- **Full Version**: Combination of date and build number
+
+### Choosing the Right Tag
+```bash
+# For development - always get the latest features
+docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
+
+# For production - pin to a specific version
+docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24.1
+
+# For staging - use latest build of a specific day
+docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24
+```
+
 ## Automated Publishing
 
 The image is automatically built and published via GitHub Actions:
 
-- **On push to main/master**: Builds and publishes with `latest` tag
-- **On tag push (v*)**: Builds and publishes with version tags
+- **On push to main**: Builds and publishes with auto-generated version tags + `latest`
+- **On tag push (v*)**: Builds and publishes with both semver and auto-generated tags
 - **On pull request**: Builds but doesn't publish (for testing)
 
 The workflow supports multi-platform builds (linux/amd64, linux/arm64) and includes automated testing.
