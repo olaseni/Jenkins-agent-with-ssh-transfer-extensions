@@ -1,10 +1,10 @@
 # Jenkins Agent with SSH Transfer Extensions
 
-A Jenkins agent Docker image with enhanced SSH keyscanning capabilities that runs at container startup rather than build time.
+A Jenkins agent Docker image with rsync and enhanced SSH keyscanning capabilities that runs at container startup. This makes it easy to run simple transfer tasks on minimal pipelines.
 
 ## Features
 
-- **Runtime SSH Keyscan**: SSH host keys are scanned and added to `known_hosts` when the container starts, not during build
+- **Runtime SSH Keyscan**: SSH host keys are scanned and added to `known_hosts` when the container starts
 - **Always-Scanned Hostnames**: `github.com`, `gitlab.com`, and `bitbucket.org` are always included for maximum compatibility
 - **Flexible Hostname Configuration**: Add additional hosts via multiple `HOSTNAMES_TO_SCAN_*` environment variables
 - **Backward Compatibility**: Legacy `SSH_HOSTNAMES` format still supported
@@ -13,53 +13,51 @@ A Jenkins agent Docker image with enhanced SSH keyscanning capabilities that run
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `HOSTNAMES_TO_SCAN_*` | Comma-separated list of additional hostnames to scan (supports multiple variables with any suffix) | None |
-| `SSH_HOSTNAMES` | Legacy: Comma-separated list of hostnames to scan (still supported for backward compatibility) | None |
-| `SSH_KEYSCAN_ENABLED` | Enable/disable SSH keyscanning | `true` |
+| Variable                | Description                                                                                        | Default  |
+| ----------------------- | -------------------------------------------------------------------------------------------------- | -------- |
+| `HOSTNAMES_TO_SCAN_*` | Comma-separated list of additional hostnames to scan (supports multiple variables with any suffix) | None     |
+| `SSH_HOSTNAMES`       | Legacy: Comma-separated list of hostnames to scan (supported for backward compatibility)           | None     |
+| `SSH_KEYSCAN_ENABLED` | Enable/disable SSH keyscanning                                                                     | `true` |
 
 **Always-Scanned Hostnames**: `github.com`, `gitlab.com`, `bitbucket.org` are ALWAYS scanned regardless of configuration (unless `SSH_KEYSCAN_ENABLED=false`).
 
 ## Usage Examples
 
 ### Default Configuration (Always-Scanned Only)
+
 ```bash
-docker run jenkins-agent-ssh:latest
+docker run jenkins-agent-with-ssh-transfer-extensions:latest
 # Scans: github.com, gitlab.com, bitbucket.org
 ```
 
 ### Additional Hostnames (New Format)
+
 ```bash
 # Single group of additional hostnames
-docker run -e HOSTNAMES_TO_SCAN_1="git.company.com,svn.legacy.com" jenkins-agent-ssh:latest
+docker run -e HOSTNAMES_TO_SCAN_1="git.company.com,svn.legacy.com" jenkins-agent-with-ssh-transfer-extensions:latest
 
 # Multiple groups with descriptive names
 docker run \
   -e HOSTNAMES_TO_SCAN_PROD="prod.git.company.com,secure.bitbucket.com" \
   -e HOSTNAMES_TO_SCAN_DEV="dev.gitlab.com" \
   -e HOSTNAMES_TO_SCAN_LEGACY="old.svn.server.com" \
-  jenkins-agent-ssh:latest
-```
-
-### Legacy Format (Still Supported)
-```bash
-docker run -e SSH_HOSTNAMES="git.example.com,custom.host.com" jenkins-agent-ssh:latest
-# Scans: github.com, gitlab.com, bitbucket.org + git.example.com, custom.host.com
+  jenkins-agent-with-ssh-transfer-extensions:latest
 ```
 
 ### Disable SSH Keyscan
+
 ```bash
-docker run -e SSH_KEYSCAN_ENABLED=false jenkins-agent-ssh:latest
+docker run -e SSH_KEYSCAN_ENABLED=false jenkins-agent-with-ssh-transfer-extensions:latest
 # No hostnames will be scanned (including always-scanned ones)
 ```
 
-### Docker Compose
+### Docker Compose example
+
 ```yaml
 version: '3.8'
 services:
   jenkins-agent:
-    image: jenkins-agent-ssh:latest
+    image: ghcr.io/olaseni/jenkins-agent-with-ssh-transfer-extensions:latest
     environment:
       - HOSTNAMES_TO_SCAN_COMPANY=git.company.com,svn.company.com
       - HOSTNAMES_TO_SCAN_EXTERNAL=partner.gitlab.com
@@ -69,32 +67,29 @@ services:
 
 ## Pre-built Image
 
-The image is automatically built and published to GitHub Container Registry on every release.
+The image is automatically built and published to GitHub Container Registry on every push.
 
 ### Quick Start with Pre-built Image
+
 ```bash
 # Pull the latest image
-docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
-
-# Pull a specific version (recommended for production)
-docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24.1
-
-# Run with default configuration (scans github.com, gitlab.com, bitbucket.org)
-docker run ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
+docker pull ghcr.io/olaseni/jenkins-agent-with-ssh-transfer-extensions:latest
 
 # Run with additional hostnames
 docker run -e HOSTNAMES_TO_SCAN_1="git.company.com" \
-  ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
+  ghcr.io/olaseni/jenkins-agent-with-ssh-transfer-extensions:latest
 ```
 
 ## Building and Testing
 
 ### Build the Image Locally
+
 ```bash
-docker build -t jenkins-agent-ssh .
+docker build -t jenkins-agent-with-ssh-transfer-extensions .
 ```
 
 ### Using the Publish Script
+
 ```bash
 # Build only
 ./publish.sh -r your-username/jenkins-agent-ssh -b
@@ -110,11 +105,13 @@ docker build -t jenkins-agent-ssh .
 ```
 
 ### Run Tests
+
 ```bash
 ./test-ssh-keyscan.sh
 ```
 
 ### Example with Docker Compose
+
 ```bash
 docker-compose -f docker-compose.example.yml up jenkins-agent-custom
 ```
@@ -124,15 +121,18 @@ docker-compose -f docker-compose.example.yml up jenkins-agent-custom
 The image uses a simple automatic versioning system with only two tag types:
 
 ### Tag Format
+
 - **`latest`**: Always points to the most recent build from the main branch
 - **`YYYY.MM.DD.BUILD`**: Specific version (e.g., `2024.09.24.1`, `2024.09.24.2`)
 
 ### Version Generation
+
 - **Date**: Current date in YYYY.MM.DD format
 - **Build Number**: Number of commits made on the current day (starting from 1)
 - **Full Version**: Combination of date and build number
 
 ### Choosing the Right Tag
+
 ```bash
 # For development - always get the latest features
 docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
@@ -147,19 +147,8 @@ The image is automatically built and published via GitHub Actions:
 
 - **On push to main**: Builds and publishes with auto-generated version tags + `latest`
 - **On tag push (v*)**: Builds and publishes with both semver and auto-generated tags
-- **On pull request**: Builds but doesn't publish (for testing)
 
 The workflow supports multi-platform builds (linux/amd64, linux/arm64) and includes automated testing.
-
-## Files
-
-- `Dockerfile` - Main Docker image definition
-- `ssh-keyscan-setup.sh` - Runtime SSH keyscan script
-- `docker-entrypoint.sh` - Container entrypoint that runs keyscan setup
-- `test-ssh-keyscan.sh` - Test script to validate functionality
-- `docker-compose.example.yml` - Example configurations
-- `publish.sh` - Helper script for building and publishing images
-- `.github/workflows/publish-docker-image.yml` - GitHub Actions workflow for automated publishing
 
 ## Benefits of Runtime Keyscan
 
