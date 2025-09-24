@@ -79,9 +79,6 @@ docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
 # Pull a specific version (recommended for production)
 docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24.1
 
-# Pull latest build for a specific date
-docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24
-
 # Run with default configuration (scans github.com, gitlab.com, bitbucket.org)
 docker run ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
 
@@ -124,12 +121,11 @@ docker-compose -f docker-compose.example.yml up jenkins-agent-custom
 
 ## Versioning System
 
-The image uses an automatic versioning system that creates multiple tags for each build:
+The image uses a simple automatic versioning system with only two tag types:
 
 ### Tag Format
 - **`latest`**: Always points to the most recent build from the main branch
 - **`YYYY.MM.DD.BUILD`**: Specific version (e.g., `2024.09.24.1`, `2024.09.24.2`)
-- **`YYYY.MM.DD`**: Latest build for a specific date (e.g., `2024.09.24`)
 
 ### Version Generation
 - **Date**: Current date in YYYY.MM.DD format
@@ -143,9 +139,6 @@ docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:latest
 
 # For production - pin to a specific version
 docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24.1
-
-# For staging - use latest build of a specific day
-docker pull ghcr.io/3wr/jenkins-agent-with-ssh-transfer-extensions:2024.09.24
 ```
 
 ## Automated Publishing
