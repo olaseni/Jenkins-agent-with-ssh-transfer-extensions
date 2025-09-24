@@ -88,13 +88,13 @@ main() {
 
     # log $SSH_HOSTNAMES for debugging
     if [[ -n "${SSH_HOSTNAMES:-}" ]]; then
-        log "Legacy SSH_HOSTNAMES variable detected: $SSH_HOSTNAMES"
+        log "Legacy SSH_HOSTNAMES variable detected: ${SSH_HOSTNAMES}"
     fi
 
     # Log $HOSTNAMES_TO_SCAN_* variables for debugging
     log "Environment variables for hostnames to scan:"
-    env | grep '^HOSTNAMES_TO_SCAN_' | while read -r line; do
-        log "  $line"
+    for var in $(env | grep '^HOSTNAMES_TO_SCAN_' | cut -d= -f1); do
+        log "  $var=${!var}"
     done
 
     # Collect hostnames from HOSTNAMES_TO_SCAN_* environment variables
