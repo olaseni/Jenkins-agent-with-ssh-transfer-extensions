@@ -70,23 +70,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update package visibility
-        run: |
-          # Make the package public (this requires the package to exist first)
-          curl -X PATCH \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.TRIPODWIRE_GITHUB_TOKEN }}" \
-            https://api.github.com/packages/container/${{ github.repository }}/versions \
-            -d '{"visibility":"public"}' || true
-
       - name: Test Docker image
         run: |
-          # Pull the image we just built
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          # Extract the first tag from the metadata output for testing
+          FIRST_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          echo "Testing image: $FIRST_TAG"
 
-          # Run basic functionality test
+          # Run basic functionality test using the locally built image
           echo "Testing default configuration..."
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} bash -c "
+          docker run --rm "$FIRST_TAG" bash -c "
             # Check if SSH keyscan setup ran
             test -f /home/jenkins/.ssh/known_hosts || exit 1
 
@@ -99,11 +91,27 @@ jobs:
           "
 
           echo "Testing custom hostnames..."
-          docker run --rm -e HOSTNAMES_TO_SCAN_1="git.example.com" ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} bash -c "
+          docker run --rm -e HOSTNAMES_TO_SCAN_1="git.example.com" "$FIRST_TAG" bash -c "
             # Always-scanned hosts should still be present
             ssh-keygen -F github.com -f /home/jenkins/.ssh/known_hosts > /dev/null || exit 1
             echo 'Custom hostname test passed!'
-          "            
+          "
+
+      - name: Update package visibility
+        if: github.event_name != 'pull_request'
+        run: |
+          # Wait a moment for the package to be fully available
+          sleep 5
+
+          # Get all package versions and make them public
+          PACKAGE_NAME="${{ env.IMAGE_NAME }}"
+
+          # Make the entire package public (this is more reliable than version-specific)
+          curl -f -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.TRIPODWIRE_GITHUB_TOKEN }}" \
+            "https://api.github.com/packages/container/${PACKAGE_NAME}" \
+            -d '{"visibility":"public"}' || echo "Failed to update package visibility (may already be public)"
 
       - name: Generate summary
         if: always()
