@@ -18,6 +18,8 @@ KNOWN_HOSTS_FILE="$SSH_DIR/known_hosts"
 # Function to log messages
 log() {
     echo "[SSH-KEYSCAN] $1"
+    # Append a timestamped log copy to a file 
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> /var/log/ssh-keyscan.log
 }
 
 # Function to check if hostname already exists in known_hosts
@@ -46,6 +48,9 @@ scan_hostname() {
 
 # Main execution
 main() {
+    # Establish that /var/log directory exists or create it unobtrusively
+    mkdir -p /var/log &>> /dev/null || true
+
     log "Starting SSH keyscan setup..."
 
     # Check if SSH keyscanning is disabled
