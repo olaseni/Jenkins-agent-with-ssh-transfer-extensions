@@ -87,9 +87,7 @@ main() {
     done
 
     # log $SSH_HOSTNAMES for debugging
-    if [[ -n "${SSH_HOSTNAMES:-}" ]]; then
-        log "Legacy SSH_HOSTNAMES variable detected: ${SSH_HOSTNAMES}"
-    fi
+    log "Legacy SSH_HOSTNAMES variable detected: ${SSH_HOSTNAMES}"
 
     # Log $HOSTNAMES_TO_SCAN_* variables for debugging
     log "Environment variables for hostnames to scan:"
