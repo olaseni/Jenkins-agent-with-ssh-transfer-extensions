@@ -70,6 +70,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Update package visibility
+        run: |
+          # Make the package public (this requires the package to exist first)
+          curl -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.TRIPODWIRE_GITHUB_TOKEN }}" \
+            https://api.github.com/packages/container/${{ github.repository }}/versions \
+            -d '{"visibility":"public"}' || true
+
       - name: Test Docker image
         run: |
           # Pull the image we just built
@@ -94,16 +103,7 @@ jobs:
             # Always-scanned hosts should still be present
             ssh-keygen -F github.com -f /home/jenkins/.ssh/known_hosts > /dev/null || exit 1
             echo 'Custom hostname test passed!'
-          "
-
-      - name: Update package visibility
-        run: |
-          # Make the package public (this requires the package to exist first)
-          curl -X PATCH \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.TRIPODWIRE_GITHUB_TOKEN }}" \
-            https://api.github.com/packages/container/${{ github.repository }}/versions \
-            -d '{"visibility":"public"}' || true
+          "            
 
       - name: Generate summary
         if: always()
