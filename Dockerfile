@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.source=https://github.com/tripodwire/Jenkins-agen
 USER root
         
 # Install rsync for file transfers. ssh is already included in the base image. Clean up apt cache to reduce image size.
-RUN apt-get update && apt-get install -y rsync && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y rsync npm && rm -rf /var/lib/apt/lists/*
 
 # Copy SSH keyscan setup script, wrapper, and entrypoint
 COPY ssh-keyscan-setup.sh /usr/local/bin/ssh-keyscan-setup.sh
@@ -20,6 +20,9 @@ RUN ln -s /usr/local/bin/ssh-keyscan-setup.sh /usr/local/bin/scan_configured_hos
     && chmod +x /usr/local/bin/docker-entrypoint.sh \
     && mv /usr/bin/ssh /usr/bin/ssh.real \
     && ln -s /usr/local/bin/ssh-wrapper.sh /usr/bin/ssh
+
+# Install composer for PHP dependency management
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Set entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
