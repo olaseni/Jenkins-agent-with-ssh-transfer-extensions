@@ -21,6 +21,9 @@ RUN ln -s /usr/local/bin/ssh-keyscan-setup.sh /usr/local/bin/scan_configured_hos
     && mv /usr/bin/ssh /usr/bin/ssh.real \
     && ln -s /usr/local/bin/ssh-wrapper.sh /usr/bin/ssh
 
+# Install just command runner
+RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
 # Set entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
