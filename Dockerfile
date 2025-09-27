@@ -4,8 +4,20 @@ LABEL org.opencontainers.image.source=https://github.com/tripodwire/Jenkins-agen
 
 USER root
         
-# Install rsync for file transfers. ssh is already included in the base image. Clean up apt cache to reduce image size.
-RUN apt-get update && apt-get install -y rsync && rm -rf /var/lib/apt/lists/*
+# Install rsync for file transfers, Node.js, npm, PHP, and composer. ssh is already included in the base image. Clean up apt cache to reduce image size.
+RUN apt-get update && apt-get install -y \
+    rsync \
+    nodejs \
+    npm \
+    php-cli \
+    php-mbstring \
+    php-xml \
+    php-curl \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Copy SSH keyscan setup script, wrapper, and entrypoint
 COPY ssh-keyscan-setup.sh /usr/local/bin/ssh-keyscan-setup.sh
