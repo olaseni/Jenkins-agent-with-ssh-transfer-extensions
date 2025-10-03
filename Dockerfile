@@ -4,23 +4,11 @@ LABEL org.opencontainers.image.source=https://github.com/tripodwire/Jenkins-agen
 
 USER root
         
-# Install rsync for file transfers, PHP, and composer. ssh is already included in the base image. Clean up apt cache to reduce image size.
+# Install rsync for file transfers. ssh is already included in the base image. Clean up apt cache to reduce image size.
 RUN apt-get update && apt-get install -y \
     rsync \
-    php-cli \
-    php-mbstring \
-    php-xml \
-    php-curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
-
-# Install nodejs 22.x and npm
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Copy SSH keyscan setup script, wrapper, and entrypoint
 COPY ssh-keyscan-setup.sh /usr/local/bin/ssh-keyscan-setup.sh
@@ -35,9 +23,6 @@ RUN ln -s /usr/local/bin/ssh-keyscan-setup.sh /usr/local/bin/scan_configured_hos
     && chmod +x /usr/local/bin/docker-entrypoint.sh \
     && mv /usr/bin/ssh /usr/bin/ssh.real \
     && ln -s /usr/local/bin/ssh-wrapper.sh /usr/bin/ssh
-
-# Install just command runner
-RUN curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
 # Set entrypoint
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
