@@ -21,6 +21,13 @@ LOG_FILE=~/log.log
 # Function to log messages
 log() {
     echo "[SSH-KEYSCAN] $1"
+
+    # Return if $SSH_KEYSCAN_ENABLED is false to avoid logging when disabled
+    if [[ "$SSH_KEYSCAN_ENABLED" != "true" ]]; then
+        echo "[SSH-KEYSCAN] (Logging disabled as SSH_KEYSCAN_ENABLED=$SSH_KEYSCAN_ENABLED)"
+        return
+    fi
+
     # Append a timestamped log copy to a file
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
