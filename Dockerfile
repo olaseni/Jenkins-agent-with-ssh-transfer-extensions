@@ -4,16 +4,19 @@ LABEL org.opencontainers.image.source=https://github.com/tripodwire/Jenkins-agen
 
 USER root
         
-# Install rsync for file transfers, Node.js, npm, PHP, and composer. ssh is already included in the base image. Clean up apt cache to reduce image size.
+# Install rsync for file transfers, PHP, and composer. ssh is already included in the base image. Clean up apt cache to reduce image size.
 RUN apt-get update && apt-get install -y \
     rsync \
-    nodejs \
-    npm \
     php-cli \
     php-mbstring \
     php-xml \
     php-curl \
     unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install nodejs 22.x and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
