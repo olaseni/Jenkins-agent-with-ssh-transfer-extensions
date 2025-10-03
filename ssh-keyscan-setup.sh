@@ -15,6 +15,8 @@ SSH_KEYSCAN_ENABLED=${SSH_KEYSCAN_ENABLED:-true}
 SSH_DIR="/home/jenkins/.ssh"
 KNOWN_HOSTS_FILE="$SSH_DIR/known_hosts"
 
+SSH_KEYSCAN_LOG_DISABLED_WARNED="false"
+
 # Internal log file
 LOG_FILE=~/log.log
 
@@ -24,7 +26,11 @@ log() {
 
     # Return if $SSH_KEYSCAN_ENABLED is false to avoid logging when disabled
     if [[ "$SSH_KEYSCAN_ENABLED" != "true" ]]; then
-        echo "[SSH-KEYSCAN] (Logging disabled as SSH_KEYSCAN_ENABLED=$SSH_KEYSCAN_ENABLED)"
+        # Warn that logging is disabled, only once
+        if [[ "$SSH_KEYSCAN_LOG_DISABLED_WARNED" == "false" ]]; then
+            SSH_KEYSCAN_LOG_DISABLED_WARNED="true"
+            echo "[SSH-KEYSCAN] Warning: Logging to file is disabled as SSH_KEYSCAN_ENABLED=$SSH_KEYSCAN_ENABLED"
+        fi
         return
     fi
 
@@ -58,11 +64,10 @@ scan_hostname() {
 
 # Main execution
 main() {
-    log "Starting SSH keyscan setup..."
+    log "Starting SSH keyscan setup, SSH_KEYSCAN_ENABLED=${SSH_KEYSCAN_ENABLED} ..."
 
     # Check if SSH keyscanning is disabled
     if [[ "$SSH_KEYSCAN_ENABLED" != "true" ]]; then
-        log "SSH keyscanning is disabled (SSH_KEYSCAN_ENABLED=$SSH_KEYSCAN_ENABLED)"
         return 0
     fi
 
